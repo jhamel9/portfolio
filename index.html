@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advanced Barcode Scanner</title>
     <style>
         :root {
@@ -9,16 +11,19 @@
             --accent-color: #4CAF50;
             --border-color: #333;
             --secondary-color: #888;
+            --red-color: #f44336;
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             text-align: center;
             background-color: var(--bg-color);
             color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         h1 {
@@ -31,12 +36,19 @@
             color: var(--secondary-color);
         }
 
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
         #scanner-container {
             position: relative;
             width: 100%;
             max-width: 600px;
-            margin: 20px auto;
-            border-radius: 8px;
+            margin: 0 auto;
+            border-radius: 12px;
             overflow: hidden;
             background-color: #000;
         }
@@ -44,38 +56,103 @@
         #video {
             width: 100%;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
         }
 
-        #result {
+        .scan-result-container {
             font-size: 1.1rem;
-            margin: 20px 0 5px;
             padding: 12px;
             background-color: #1e1e1e;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 12px;
             min-height: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        #result, #product-name {
+            font-weight: bold;
+        }
+
+        #result-text {
+            word-break: break-all;
         }
 
         #scan-time {
             font-size: 0.85rem;
             color: var(--secondary-color);
-            margin-bottom: 15px;
+            margin-top: 5px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        #product-name-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #1e1e1e;
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
         }
 
         #startButton {
             background-color: var(--accent-color);
             color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background 0.2s ease;
         }
 
         #startButton:hover {
             background-color: #3e8e41;
+        }
+
+        #saveButton {
+            background-color: #007bff;
+            color: white;
+            display: none;
+        }
+
+        #saveButton:hover {
+            background-color: #0056b3;
+        }
+
+        #message-box {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
         }
 
         .scanner-guide {
@@ -89,84 +166,200 @@
             z-index: 10;
         }
 
-        #api-selector {
-            margin: 15px 0;
-            padding: 8px;
+        #api-selector, #mode-selector {
+            width: 100%;
+            padding: 10px;
             font-size: 0.9rem;
-            border-radius: 5px;
+            border-radius: 8px;
             border: 1px solid var(--border-color);
             background-color: #1e1e1e;
             color: var(--text-color);
+            appearance: none;
+            text-align: center;
         }
-
+        
         .status {
             font-size: 0.8rem;
             color: var(--secondary-color);
             margin-top: 10px;
         }
 
-        * {
-            transition: background-color 0.3s ease, color 0.3s ease;
+        #registered-items {
+            margin-top: 20px;
+            text-align: left;
+            padding: 15px;
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            min-height: 100px;
+        }
+
+        #registered-items h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        #registered-items ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        #registered-items li {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        #registered-items li:last-child {
+            border-bottom: none;
+        }
+
+        .error-message {
+            color: var(--red-color);
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <h1>Advanced Barcode Scanner</h1>
-    <p>Select scanning method and point your camera at a barcode</p>
-    
-    <select id="api-selector">
-        <option value="auto">Auto-select best API</option>
-        <option value="native">Native BarcodeDetector API (fastest)</option>
-        <option value="quagga">QuaggaJS (wider support)</option>
-        <option value="zxing">ZXing (alternative)</option>
-    </select>
-    
-    <div id="scanner-container">
-        <video id="video" playsinline></video>
-        <div class="scanner-guide"></div>
+    <p>Select a mode and scanning method</p>
+
+    <div class="container">
+        <!-- Mode Selector -->
+        <select id="mode-selector">
+            <option value="scan">Scan Mode</option>
+            <option value="register">Register Mode</option>
+        </select>
+        
+        <!-- API Selector -->
+        <select id="api-selector">
+            <option value="auto">Auto-select best API</option>
+            <option value="native">Native BarcodeDetector API (fastest)</option>
+            <option value="quagga">QuaggaJS (wider support)</option>
+            <option value="zxing">ZXing (alternative)</option>
+        </select>
+
+        <div id="scanner-container">
+            <video id="video" playsinline></video>
+            <div class="scanner-guide"></div>
+        </div>
+        
+        <div class="scan-result-container">
+            <div id="result-text">Ready to scan...</div>
+            <div id="scan-time"></div>
+        </div>
+
+        <!-- Register Mode Input and Button -->
+        <div class="input-group" id="register-ui" style="display:none;">
+            <input type="text" id="product-name-input" placeholder="Enter product name">
+            <button id="saveButton">Save Barcode</button>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <button id="startButton">Start Scanner</button>
+
+        <!-- Display Registered Items -->
+        <div id="registered-items">
+            <h3>Registered Items (in-memory)</h3>
+            <ul id="item-list"></ul>
+        </div>
     </div>
     
-    <div id="result">Scan result will appear here</div>
-    <div id="scan-time"></div>
-    <div id="status" class="status">Ready</div>
+    <!-- Custom message box -->
+    <div id="message-box"></div>
     
-    <button id="startButton">Start Scanner</button>
-    
-    <!-- Load QuaggaJS only if needed -->
+    <!-- Load QuaggaJS and ZXing only if needed, but included for all demos -->
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
-    <!-- Load ZXing only if needed -->
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     
     <script>
+        // DOM Elements
         const video = document.getElementById('video');
-        const result = document.getElementById('result');
+        const resultText = document.getElementById('result-text');
         const scanTime = document.getElementById('scan-time');
         const startButton = document.getElementById('startButton');
         const apiSelector = document.getElementById('api-selector');
+        const modeSelector = document.getElementById('mode-selector');
         const statusElement = document.getElementById('status');
-        
+        const registerUI = document.getElementById('register-ui');
+        const productNameInput = document.getElementById('product-name-input');
+        const saveButton = document.getElementById('saveButton');
+        const messageBox = document.getElementById('message-box');
+        const itemList = document.getElementById('item-list');
+
+        // Global state
         let scannerActive = false;
         let currentScanner = null;
         let stream = null;
+        let lastScannedBarcode = null;
+        const registeredItems = {}; // In-memory database
+
+        // --- UI Functions ---
+        function showMessage(message, duration = 3000) {
+            messageBox.textContent = message;
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, duration);
+        }
+
+        function updateUIForMode(mode) {
+            if (mode === 'register') {
+                registerUI.style.display = 'flex';
+                startButton.textContent = 'Start Scanner';
+                resultText.textContent = 'Enter a product name after scanning.';
+            } else {
+                registerUI.style.display = 'none';
+                startButton.textContent = 'Start Scanner';
+                resultText.textContent = 'Ready to scan...';
+            }
+        }
 
         function showScanData(code, method) {
-            result.textContent = code;
+            const mode = modeSelector.value;
             statusElement.textContent = `Detected using ${method}`;
             const now = new Date();
             scanTime.textContent = `Scanned at: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+            lastScannedBarcode = code;
+
+            if (mode === 'scan') {
+                const item = registeredItems[code];
+                if (item) {
+                    resultText.innerHTML = `<span id="product-name">${item.name}</span><br><span id="result">${item.barcode}</span>`;
+                    showMessage('Barcode found!');
+                } else {
+                    resultText.innerHTML = `<span id="result-text">Barcode not found.</span>`;
+                    showMessage('Barcode not found in database.', 5000);
+                }
+            } else if (mode === 'register') {
+                resultText.innerHTML = `<span id="result">${code}</span>`;
+                productNameInput.value = '';
+                saveButton.style.display = 'block';
+            }
             stopScanner();
         }
-        
+
+        function updateRegisteredList() {
+            itemList.innerHTML = '';
+            for (const barcode in registeredItems) {
+                const item = registeredItems[barcode];
+                const li = document.createElement('li');
+                li.innerHTML = `<b>${item.name}:</b> ${item.barcode}`;
+                itemList.appendChild(li);
+            }
+        }
+
+        // --- Scanner Classes (from original code) ---
         class NativeBarcodeScanner {
             constructor() {
-                this.detector = new BarcodeDetector({ 
-                    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39', 'code_128', 'qr_code'] 
+                this.detector = new BarcodeDetector({
+                    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39', 'code_128', 'qr_code']
                 });
                 this.active = false;
             }
             async start() {
                 this.active = true;
-                await this.detectLoop();
+                this.detectLoop();
             }
             stop() { this.active = false; }
             async detectLoop() {
@@ -216,6 +409,10 @@
                 this.active = true;
                 try {
                     const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+                    if (devices.length === 0) {
+                        statusElement.textContent = 'No video devices found.';
+                        return;
+                    }
                     await this.codeReader.decodeFromVideoDevice(
                         devices[0].deviceId,
                         video,
@@ -230,7 +427,8 @@
             }
             stop() { this.active = false; if (this.codeReader) this.codeReader.reset(); }
         }
-
+        
+        // --- Initialization and Event Listeners ---
         async function initializeScanner() {
             const selectedApi = apiSelector.value;
             if (selectedApi === 'auto') {
@@ -257,8 +455,8 @@
             if (!scannerActive) {
                 try {
                     statusElement.textContent = "Initializing...";
-                    stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
                     });
                     video.srcObject = stream;
                     await video.play();
@@ -266,14 +464,17 @@
                     await currentScanner.start();
                     scannerActive = true;
                     startButton.textContent = 'Stop Scanner';
-                    result.textContent = 'Scanning...';
+                    resultText.textContent = 'Scanning...';
                     scanTime.textContent = '';
+                    saveButton.style.display = 'none';
                     statusElement.textContent = `Scanning with ${apiSelector.value} mode`;
                 } catch (err) {
-                    statusElement.textContent = 'Error: ' + err.message;
+                    statusElement.innerHTML = `<span class="error-message">Error: ${err.message}</span>`;
                     console.error(err);
                 }
-            } else stopScanner();
+            } else {
+                stopScanner();
+            }
         });
 
         function stopScanner() {
@@ -284,7 +485,36 @@
             if (!scanTime.textContent) statusElement.textContent = 'Ready';
         }
 
+        saveButton.addEventListener('click', () => {
+            const productName = productNameInput.value.trim();
+            if (productName && lastScannedBarcode) {
+                registeredItems[lastScannedBarcode] = { name: productName, barcode: lastScannedBarcode };
+                productNameInput.value = '';
+                saveButton.style.display = 'none';
+                lastScannedBarcode = null;
+                resultText.textContent = 'Ready to scan...';
+                scanTime.textContent = '';
+                statusElement.textContent = 'Item registered successfully!';
+                updateRegisteredList();
+                showMessage('Item saved successfully!');
+                console.log('Registered Items:', registeredItems);
+            } else {
+                statusElement.innerHTML = `<span class="error-message">Error: Please enter a name and scan a barcode.</span>`;
+            }
+        });
+
+        modeSelector.addEventListener('change', (event) => {
+            stopScanner();
+            updateUIForMode(event.target.value);
+            resultText.textContent = 'Ready to scan...';
+            scanTime.textContent = '';
+            saveButton.style.display = 'none';
+        });
+
+        // Initial setup
         window.addEventListener('beforeunload', stopScanner);
+        updateUIForMode(modeSelector.value);
+
     </script>
 </body>
 </html>

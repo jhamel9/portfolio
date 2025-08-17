@@ -318,14 +318,14 @@
         function showScanData(code, method) {
             const mode = modeSelector.value;
             statusElement.textContent = `Detected using ${method}`;
-            const now = new Date();
-            scanTime.textContent = `Scanned at: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
             lastScannedBarcode = code;
+            scanTime.textContent = ''; // Clear the timestamp on every new scan attempt
 
             if (mode === 'scan') {
                 const item = registeredItems[code];
                 if (item) {
                     resultText.innerHTML = `<span id="product-name">${item.name}</span><br><span id="result">${item.barcode}</span>`;
+                    scanTime.textContent = `Scanned at: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
                     showMessage('Barcode found!');
                 } else {
                     resultText.innerHTML = `<span id="result-text">Barcode not found.</span>`;
@@ -344,7 +344,7 @@
             for (const barcode in registeredItems) {
                 const item = registeredItems[barcode];
                 const li = document.createElement('li');
-                li.innerHTML = `<b>${item.name}:</b> ${item.barcode}`;
+                li.innerHTML = `<b>${item.name}:</b> ${item.barcode} <br> <small>Registered: ${item.timestamp.toLocaleDateString()} ${item.timestamp.toLocaleTimeString()}</small>`;
                 itemList.appendChild(li);
             }
         }
@@ -488,12 +488,11 @@
         saveButton.addEventListener('click', () => {
             const productName = productNameInput.value.trim();
             if (productName && lastScannedBarcode) {
-                registeredItems[lastScannedBarcode] = { name: productName, barcode: lastScannedBarcode };
+                registeredItems[lastScannedBarcode] = { name: productName, barcode: lastScannedBarcode, timestamp: new Date() };
                 productNameInput.value = '';
                 saveButton.style.display = 'none';
                 lastScannedBarcode = null;
                 resultText.textContent = 'Ready to scan...';
-                scanTime.textContent = '';
                 statusElement.textContent = 'Item registered successfully!';
                 updateRegisteredList();
                 showMessage('Item saved successfully!');
@@ -514,7 +513,7 @@
         // Initial setup
         window.addEventListener('beforeunload', stopScanner);
         updateUIForMode(modeSelector.value);
-
+        
     </script>
 </body>
 </html>
